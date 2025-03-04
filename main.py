@@ -5,29 +5,19 @@ import mysql.connector
 UPDATE_TARIFF = 0
 
 
-def get_mysql_data(df1):
+def get_mysql_data():
     cnx = mysql.connector.connect(user='dbuser', password='dbpassword', host='127.0.0.1', database='s11')
-    mycursor = cnx.cursor()
-    mycursor.execute("SELECT  rbService.code,  rbService.name, Contract_Tariff.price, Contract_Tariff.id  FROM Contract_Tariff \
+    cursor = cnx.cursor()
+    cursor.execute("SELECT  rbService.code,  rbService.name, Contract_Tariff.price, Contract_Tariff.id  FROM Contract_Tariff \
                      LEFT JOIN rbService ON  rbService.id = Contract_Tariff.service_id \
                      WHERE Contract_Tariff.master_id=34 and Contract_Tariff.deleted = 0"
-                     )
-
-    data = mycursor.fetchall()
-    column_names = [i[0] for i in mycursor.description]
-    # print(column_names)
-    df2 = pd.DataFrame(data, columns=column_names)
-    merged = df1.merge(df2,
-                       right_on='code',
-                       left_on='№ п/п',
-                       how='outer',
-                       indicator=True
-                       )
-    # print(merged)
-    merged.to_csv('f2.csv')
-    # print(df1.iloc[0])
+                   )
+    data = cursor.fetchall()
+    column_names = [i[0] for i in cursor.description]
+    df = pd.DataFrame(data, columns=column_names)
+    cursor.close()
     cnx.close()
-    return merged
+    return df
 
 
 def update_value_price(merged):
@@ -38,28 +28,36 @@ def update_value_price(merged):
     cursor = cnx.cursor()
     update_query = "UPDATE Contract_Tariff SET price = %s WHERE id = %s"
     for index, row in merged.iterrows():
-        # print(update_query, (row['Стоимость за процедуру/ манипуляцию, руб.'], row['id']))
         cursor.execute(update_query, (row['Стоимость за процедуру/ манипуляцию, руб.'], row['id']))
-
     cnx.commit()
     cursor.close()
     cnx.close()
 
 
-def open_file():
+def read_file():
     filepath = filedialog.askopenfilename()
     df = pd.read_excel(filepath, header=7, index_col=None)
-    # print(df.columns)
-    # столбцы по имени
+    return df
+
+
+def clear_df(df):
     df = df.drop('Unnamed: 4', axis=1)
     df = df.drop('Код СКМУ', axis=1)
     df = df.dropna(subset=['Стоимость за процедуру/ манипуляцию, руб.'])
-    merged = get_mysql_data(df)
-    if UPDATE_TARIFF:
-        update_value_price(merged)
+    return df
 
 
 if __name__ == '__main__':
-    open_file()
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    xls_df = read_file()
+    xls_df = clear_df(xls_df)
+    base_df = get_mysql_data()
+    merged = xls_df.merge(
+        base_df,
+        right_on='code',
+        left_on='№ п/п',
+        how='outer',
+        indicator=True
+    )
+    merged.to_csv('f2.csv')
+    if UPDATE_TARIFF:
+        update_value_price(merged)
