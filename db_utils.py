@@ -108,6 +108,15 @@ def insert_service(data):
     """
     return change_data(query)
 
+def insert_tariff(service_id, contract_id, price):
+    """Добавление тарифа уcлуги"""
+    query = f"""
+       INSERT INTO Contract_Tariff (master_id, tariffType, service_id, price)
+       VALUES ({contract_id}, 2, {service_id}, {price})
+
+    """
+    return change_data(query)
+
 
 def get_contract_tariff():
     pass
@@ -147,8 +156,6 @@ def get_contract_tariff():
     #     return None
 
 
-def insert_service(data):
-    pass
 
 
 #     cnx = mysql.connector.connect(user=user, password=password, host=host, database=base_name)

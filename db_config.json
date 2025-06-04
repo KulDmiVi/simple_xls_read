@@ -1,0 +1,7 @@
+{
+  "user": "dbuser",
+  "password": "dbpassword",
+  "host": "127.0.0.1",
+  "database": "s11",
+  "port": 3306
+}
