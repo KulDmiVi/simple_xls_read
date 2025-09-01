@@ -1,10 +1,15 @@
-from tkinter import filedialog, Tk, messagebox, Frame, Button
-from tkinter import ttk  # Импортируем ttk для Treeview
+from tkinter import filedialog, Tk
 import pandas as pd
 from preview_utils import create_preview_window
 from db_utils import get_contract_tariff, update_value_price
 
 def read_xls_file():
+    """
+    Функция для открытия и чтения Excel файла.
+
+    Returns:
+        DataFrame: прочитанные данные или None если файл не выбран
+    """
     filepath = filedialog.askopenfilename(filetypes=[("Excel files", "*.xls *.xlsx")])
     if not filepath:
         return None
@@ -12,10 +17,20 @@ def read_xls_file():
     return df
 
 def clear_df(df):
+    """
+    Функция очистки DataFrame от пустых значений.
+
+    Args:
+        df (DataFrame): исходный DataFrame
+
+    Returns:
+        DataFrame: очищенный DataFrame
+    """
     df = df.dropna()
     return df
 
 def util_tariff_updater():
+    """Утилита обновление тарифов"""
     xls_df = read_xls_file()
     if xls_df is not None:
         xls_df = clear_df(xls_df)
