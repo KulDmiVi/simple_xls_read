@@ -29,7 +29,7 @@ except (FileNotFoundError, ValueError) as e:
 
 @contextmanager
 def get_db_connection():
-    """Контекст менеджер для подключения к БД"""
+    """Контекст-менеджер для подключения к БД"""
     cnx = None
     try:
         cnx = mysql.connector.connect(
@@ -37,13 +37,15 @@ def get_db_connection():
             password=DB_CONFIG['password'],
             host=DB_CONFIG['host'],
             port=DB_CONFIG['port'],
-            database=DB_CONFIG['database']
+            database=DB_CONFIG['database'],
+            connection_timeout=20
         )
         yield cnx
     except mysql.connector.Error as e:
         print(f"Ошибка подключения к БД: {e}")
+        raise
     finally:
-        if cnx:
+        if cnx and cnx.is_connected():
             cnx.close()
 
 
@@ -54,12 +56,10 @@ def get_records(query):
         try:
             cursor.execute(query)
             data = cursor.fetchall()
+            cursor.close()
             return data
         except mysql.connector.Error as e:
             print(f"Ошибка выполнения запроса: {e}")
-        finally:
-            cursor.close()
-
 
 def change_data(query):
     """Выполнения запроса на изменения данных"""
@@ -68,12 +68,10 @@ def change_data(query):
         try:
             data = cursor.execute(query)
             cnx.commit()
+            cursor.close()
             return data
         except mysql.connector.Error as e:
             print(f"Ошибка выполнения запроса: {e}")
-        finally:
-            cursor.close()
-
 
 def get_contracts(filter_params):
     """
@@ -109,6 +107,7 @@ def get_service_id_by_code(service_code):
     """
     return get_records(query)
 
+
 def get_organisation_id_by_rekviz(inn, kpp, ogrn):
     """Получения id организации по ИНН, КПП, ОГРН."""
     query = f"""
@@ -120,6 +119,34 @@ def get_organisation_id_by_rekviz(inn, kpp, ogrn):
         ORDER BY Organisation.id  desc
     """
     return get_records(query)
+
+
+def insert_organisation(data):
+    """Вставка организации"""
+    query = f"""
+       INSERT INTO Organisation (
+       fullName, shortName, title, 
+       infisCode, obsoleteInfisCode, tfomsExtCode, miacCode, smoCode, usishCode,
+       isMedical, isActive, isInsurer,
+       INN, KPP, OGRN, 
+       OKVED, OKATO, OKPO, FSS, region, Address, chief, phone, accountant, area, notes, email,
+       createDatetime, modifyDatetime
+       )
+       VALUES (
+            '{data['nameFull']}',
+            '{data['nameShort']}',
+            '{data['nameShort']}',
+            '', '', '', '', '', '',
+             1, 1, 0,
+             '{data['inn']}',
+             '{data['kpp']}',
+             '{data['ogrn']}',
+             '', '', '', '', '', '',  '',  '', '', '', '', '',
+             NOW(),
+             NOW());
+    """
+    return change_data(query)
+
 
 def update_service(service_id, data):
     """Обновления данных услуги"""
