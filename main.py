@@ -7,6 +7,8 @@ try:
     from update_tariff import util_tariff_updater
     from update_service import util_load_service
     from insert_tariff import util_tariff_insert
+    from update_mo import util_mo_updater
+
 except ImportError as e:
     messagebox.showerror("Ошибка импорта", f"Не удалось импортировать модули: {str(e)}")
     raise
@@ -42,10 +44,19 @@ def run_mse_service():
 def run_tariff_updater():
     """Запуск обновления тарифов"""
     try:
-        util_tariff_updater()
+        util_tariff_updater(root)
         messagebox.showinfo("Успех", "Обновление тарифов выполнено успешно")
     except Exception as e:
         messagebox.showerror("Ошибка", f"Произошла ошибка при обновлении тарифов: {str(e)}")
+
+def run_mo_updater():
+    """Запуск обновления справочника организаций"""
+    try:
+        util_mo_updater(root)
+        messagebox.showinfo("Успех", "Обновление тарифов выполнено успешно")
+    except Exception as e:
+        messagebox.showerror("Ошибка", f"Произошла ошибка при обновлении тарифов: {str(e)}")
+
 
 
 def run_selected():
@@ -59,6 +70,8 @@ def run_selected():
         run_mse_service()
     elif selected == 4:
         run_tariff_updater()
+    elif selected == 5:
+        run_mo_updater()
     else:
         messagebox.showwarning("Предупреждение", "Пожалуйста, выберите функцию")
 

@@ -75,6 +75,30 @@ def change_data(query):
             cursor.close()
 
 
+def get_contracts(filter_params):
+    """
+    Получает список договоров по заданным фильтрам.
+
+    Args:
+        filter_params (dict): словарь с параметрами фильтрации
+
+    Returns:
+        list: список словарей с данными договоров
+     """
+    query = f"""
+        SELECT `id`, `number`, `resolution`, `grouping` 
+        FROM Contract
+        WHERE resolution = %s AND grouping = %s
+    """
+
+    query_params = (
+        filter_params['resolution'],
+        filter_params['grouping']
+    )
+
+    return get_records(query % query_params)
+
+
 def get_service_id_by_code(service_code):
     """Получения id услуг по коду."""
     query = f"""
@@ -107,6 +131,7 @@ def insert_service(data):
 
     """
     return change_data(query)
+
 
 def insert_tariff(service_id, contract_id, price):
     """Добавление тарифа уcлуги"""
@@ -154,8 +179,6 @@ def get_contract_tariff():
     #     return data[0]
     # else:
     #     return None
-
-
 
 
 #     cnx = mysql.connector.connect(user=user, password=password, host=host, database=base_name)
