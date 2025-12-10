@@ -49,14 +49,14 @@ def run_tariff_updater():
     except Exception as e:
         messagebox.showerror("Ошибка", f"Произошла ошибка при обновлении тарифов: {str(e)}")
 
+
 def run_mo_updater():
     """Запуск обновления справочника организаций"""
     try:
-        util_mo_updater(root)
-        messagebox.showinfo("Успех", "Обновление тарифов выполнено успешно")
+        util_mo_updater()
+        messagebox.showinfo("Успех", "Обновление справочника организаций выполнено успешно")
     except Exception as e:
-        messagebox.showerror("Ошибка", f"Произошла ошибка при обновлении тарифов: {str(e)}")
-
+        messagebox.showerror("Ошибка", f"Произошла ошибка при обновлении справочника организаций: {str(e)}")
 
 
 def run_selected():
@@ -115,10 +115,15 @@ ttk.Radiobutton(frame,
                 variable=var,
                 value=4).pack(anchor=tk.W)
 
-# Кнопка запуска
+ttk.Radiobutton(frame,
+                text="Обновление справочника организаций",
+                variable=var,
+                value=5).pack(anchor=tk.W)
+
+
 ttk.Button(frame,
            text="Запустить",
            command=run_selected).pack(pady=15)
 
-# Запуск главного цикла
+
 root.mainloop()

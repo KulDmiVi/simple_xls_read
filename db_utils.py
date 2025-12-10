@@ -109,6 +109,17 @@ def get_service_id_by_code(service_code):
     """
     return get_records(query)
 
+def get_organisation_id_by_rekviz(inn, kpp, ogrn):
+    """Получения id организации по ИНН, КПП, ОГРН."""
+    query = f"""
+        SELECT Organisation.id 
+        FROM Organisation 
+        WHERE Organisation.INN='{inn}'
+         AND Organisation.KPP='{kpp}' 
+         AND Organisation.OGRN='{ogrn}'
+        ORDER BY Organisation.id  desc
+    """
+    return get_records(query)
 
 def update_service(service_id, data):
     """Обновления данных услуги"""
