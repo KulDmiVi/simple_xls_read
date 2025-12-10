@@ -1,10 +1,8 @@
 from tkinter import filedialog
 import csv
 
-delimiter = '|'
-
-def read_csv_file(keys):
-    filepath = filedialog.askopenfilename()
+def read_csv_file(keys, delimiter='|' ):
+    filepath = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
     data = []
     with open(filepath, mode='r', encoding='utf-8') as file:
         reader = csv.DictReader(file, delimiter=delimiter)
