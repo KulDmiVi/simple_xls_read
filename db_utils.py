@@ -38,7 +38,7 @@ def get_db_connection():
             host=DB_CONFIG['host'],
             port=DB_CONFIG['port'],
             database=DB_CONFIG['database'],
-            connection_timeout=20
+            connection_timeout=30
         )
         yield cnx
     except mysql.connector.Error as e:
@@ -52,8 +52,20 @@ def get_db_connection():
 def get_records(query):
     """Выполнения запроса на получения данных"""
     with get_db_connection() as cnx:
-        cursor = cnx.cursor()
         try:
+            cursor = cnx.cursor()
+            cursor.execute(query)
+            data = cursor.fetchall()
+            cursor.close()
+            return data
+        except mysql.connector.Error as e:
+            print(f"Ошибка выполнения запроса: {e}")
+
+def get_info(query):
+    """Выполнения запроса на получения данных и возвращает данные в виде списка словарей"""
+    with get_db_connection() as cnx:
+        try:
+            cursor = cnx.cursor(dictionary=True)
             cursor.execute(query)
             data = cursor.fetchall()
             cursor.close()
@@ -64,14 +76,15 @@ def get_records(query):
 def change_data(query):
     """Выполнения запроса на изменения данных"""
     with get_db_connection() as cnx:
-        cursor = cnx.cursor()
         try:
+            cursor = cnx.cursor()
             data = cursor.execute(query)
             cnx.commit()
             cursor.close()
             return data
         except mysql.connector.Error as e:
             print(f"Ошибка выполнения запроса: {e}")
+
 
 def get_contracts(filter_params):
     """
@@ -97,6 +110,19 @@ def get_contracts(filter_params):
     return get_records(query % query_params)
 
 
+def update_service(service_id, data):
+    """Обновления данных услуги"""
+    query = f"""
+        UPDATE rbService
+        SET
+            rbService.adultUetDoctor='{data['uet_v']}',
+            rbService.childUetDoctor='{data['uet_d']}'
+        WHERE
+            rbService.id = {service_id}
+    """
+    return change_data(query)
+
+
 def get_service_id_by_code(service_code):
     """Получения id услуг по коду."""
     query = f"""
@@ -108,17 +134,56 @@ def get_service_id_by_code(service_code):
     return get_records(query)
 
 
-def get_organisation_id_by_rekviz(inn, kpp, ogrn):
+def get_system_id_by_urn(urn):
+    """Получения id внешней учетной системы."""
+    query = f"""
+          SELECT rbAccountingSystem.id 
+          FROM rbAccountingSystem
+          WHERE rbAccountingSystem.urn='{urn}'
+          ORDER BY rbAccountingSystem.id  desc
+      """
+    return get_records(query)
+
+
+def insert_organization_indentification(org_id, system_id, data):
+    """Вставка организации"""
+    query = f"""
+       INSERT INTO Organisation_Identification(
+       master_id, system_id, value, createDatetime, modifyDatetime
+       )
+       VALUES (
+            {org_id},
+            {system_id},
+            '{data['oid']}',
+             NOW(),
+             NOW());
+    """
+    return change_data(query)
+
+
+def get_organization_indentification(org_id, system_id):
+    """Получения идентификатора организации"""
+    query = f"""
+        SELECT Organisation_Identification.id 
+        FROM Organisation_Identification
+        WHERE Organisation_Identification.master_id='{org_id}'
+         AND Organisation_Identification.system_id='{system_id}' 
+        ORDER BY Organisation_Identification.id  desc
+    """
+    return get_records(query)
+
+
+def get_organisation_info_by_rekviz(inn, kpp, ogrn):
     """Получения id организации по ИНН, КПП, ОГРН."""
     query = f"""
-        SELECT Organisation.id 
+        SELECT *
         FROM Organisation 
         WHERE Organisation.INN='{inn}'
          AND Organisation.KPP='{kpp}' 
          AND Organisation.OGRN='{ogrn}'
         ORDER BY Organisation.id  desc
     """
-    return get_records(query)
+    return get_info(query)
 
 
 def insert_organisation(data):
@@ -148,15 +213,44 @@ def insert_organisation(data):
     return change_data(query)
 
 
-def update_service(service_id, data):
-    """Обновления данных услуги"""
+def insert_organisation(data):
+    """Вставка организации"""
     query = f"""
-        UPDATE rbService
-        SET
-            rbService.adultUetDoctor='{data['uet_v']}',
-            rbService.childUetDoctor='{data['uet_d']}'
+       INSERT INTO Organisation (
+       fullName, shortName, title, 
+       infisCode, obsoleteInfisCode, tfomsExtCode, miacCode, smoCode, usishCode,
+       isMedical, isActive, isInsurer,
+       INN, KPP, OGRN, 
+       OKVED, OKATO, OKPO, FSS, region, Address, chief, phone, accountant, area, notes, email,
+       createDatetime, modifyDatetime
+       )
+       VALUES (
+            '{data['nameFull']}',
+            '{data['nameShort']}',
+            '{data['nameShort']}',
+            '', '', '', '', '', '',
+             1, 1, 0,
+             '{data['inn']}',
+             '{data['kpp']}',
+             '{data['ogrn']}',
+             '', '', '', '', '', '',  '',  '', '', '', '', '',
+             NOW(),
+             NOW());
+    """
+    return change_data(query)
+
+
+def update_organisation(org_id, params):
+    """Обновления данных организации"""
+    set_parts = []
+    for key, value in params.items():
+        set_parts.append(f"{key} = {value}")
+    set_clause = ", ".join(set_parts)
+    query = f"""
+        UPDATE Organisation
+        SET modifyDatetime=NOW(), {set_clause}
         WHERE
-            rbService.id = {service_id}
+            Organisation.id = {org_id}
     """
     return change_data(query)
 
