@@ -32,7 +32,7 @@ def util_tariff_insert():
                 service = get_service_data(row)
                 service_ids = get_service_id_by_code(service['code'])
                 if check_service_count(service_ids, service):
-                    print(f"Add tariff {service.code}")
+                    print(f"Add tariff {service['code']}")
                     tariff_data = {
                         'contract_id': contract_ids[0][0],
                         'tariff_type': tariff_type['action_as_count'],
