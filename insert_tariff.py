@@ -20,16 +20,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 EXCEL_CONFIG = {
-    'header_rows': 8,
+    'header_rows': 12,
     'columns': {
-        'service_code': 1,  # Код услуги
-        'service_name': 2,  # Название услуги
-        'service_price': 3  # Цена
+        'service_code': 0,  # Код услуги
+        'service_name': 1,  # Название услуги
+        'service_price': 2  # Цена
     },
     'expected_sheet_name': None,  # Если нужно указывать лист
     'usecols': None  # Если нужно ограничить столбцы
 }
 
+PROCESS_CONFIG = {
+    'contract_number': 'Прейскурант_лаборатория-14122025',
+    'unit_code': '28',
+    'tariff_type': 2,  # action_as_count
+    'beg_date': '2025-12-14'
+}
 
 def select_and_read_excel_file() -> pd.DataFrame:
     """
@@ -215,20 +221,16 @@ def insert_tariff_record(
 
 
 def util_tariff_insert():
-    """
-    Основной процесс: считывает Excel, извлекает данные и вставляет тарифы в БД.
-    """
-
-    contract_number = 'Прейскурант_лаборатория-14122025'
-    unit_code = '28'
-    tariff_type = 2  # action_as_count
-    beg_date = "2025-12-14"
+    """Основной процесс: считывает Excel, извлекает данные и вставляет тарифы в БД."""
 
     logger.info("Запуск процесса импорта тарифов из Excel")
 
     try:
         xls_df = select_and_read_excel_file()
-        contract_id, unit_id = get_contract_unit_ids(contract_number, unit_code)
+        contract_id, unit_id = get_contract_unit_ids(
+            PROCESS_CONFIG['contract_number'],
+            PROCESS_CONFIG['unit_code']
+        )
         processed_count = 0
         skipped_count = 0
 
@@ -251,8 +253,8 @@ def util_tariff_insert():
                     unit_id=unit_id,
                     service_id=service_ids[0][0],
                     price=service['price'],
-                    tariff_type=tariff_type,
-                    beg_date=beg_date
+                    tariff_type=PROCESS_CONFIG['tariff_type'],
+                    beg_date=PROCESS_CONFIG['beg_date']
                 )
                 processed_count += 1
             except Exception as e:
@@ -267,7 +269,6 @@ def util_tariff_insert():
             f"пропущено: {skipped_count}, "
             f"всего строк: {len(xls_df)}"
         )
-
 
     except Exception as e:
         logger.critical(f"Критическая ошибка при выполнении импорта: {e}")
