@@ -19,13 +19,24 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+EXCEL_CONFIG = {
+    'header_rows': 8,
+    'columns': {
+        'service_code': 1,  # Код услуги
+        'service_name': 2,  # Название услуги
+        'service_price': 3  # Цена
+    },
+    'expected_sheet_name': None,  # Если нужно указывать лист
+    'usecols': None  # Если нужно ограничить столбцы
+}
+
 
 def select_and_read_excel_file() -> pd.DataFrame:
     """
     Открывает диалоговое окно для выбора Excel-файла и считывает его.
 
     Returns:
-        DataFrame с данными из выбранного файла (header=8).
+        DataFrame с данными из выбранного файла (на основе EXCEL_CONFIG).
 
     Raises:
         FileNotFoundError: если файл не выбран или не найден.
@@ -43,7 +54,14 @@ def select_and_read_excel_file() -> pd.DataFrame:
     logger.info(f"Выбран файл для обработки: {filepath}")
 
     try:
-        df = pd.read_excel(filepath, header=8, index_col=None)
+        df = pd.read_excel(
+            filepath,
+            header=EXCEL_CONFIG['header_rows'],
+            index_col=None,
+            sheet_name=EXCEL_CONFIG['expected_sheet_name'],
+            usecols=EXCEL_CONFIG['usecols']
+        )
+
         if df.empty:
             logger.error(f"Файл {filepath} прочитан, но оказался пустым.")
             raise pd.errors.EmptyDataError(f"Файл {filepath} пуст.")
@@ -95,6 +113,7 @@ def get_contract_unit_ids(contract_number: str, unit_code: str) -> tuple:
     return contract_ids[0][0], unit_ids[0][0]
 
 
+
 def parse_service_row(row: pd.Series) -> dict:
     """
     Извлекает данные услуги из строки DataFrame.
@@ -105,14 +124,19 @@ def parse_service_row(row: pd.Series) -> dict:
     Returns:
         Словарь с полями: code, name, price.
     """
-    code = str(row.iloc[1]).strip()
+
+    code_idx = EXCEL_CONFIG['columns']['service_code']
+    name_idx = EXCEL_CONFIG['columns']['service_name']
+    price_idx = EXCEL_CONFIG['columns']['service_price']
+
+    code = str(row.iloc[code_idx]).strip()
     # Замена латинской 'A' на русскую
     if code.startswith("A"):
         code = "А" + code[1:]
         logger.debug(f"Заменён код услуги: {code}")
 
-    name = " ".join(str(row.iloc[2]).split()) if pd.notna(row.iloc[2]) else ""
-    price = row.iloc[3] if pd.notna(row.iloc[3]) else 0.0
+    name = " ".join(str(row.iloc[name_idx]).split()) if pd.notna(row.iloc[name_idx]) else ""
+    price = row.iloc[price_idx] if pd.notna(row.iloc[price_idx]) else 0.0
 
     service_data = {
         'code': code,
@@ -195,7 +219,7 @@ def util_tariff_insert():
     Основной процесс: считывает Excel, извлекает данные и вставляет тарифы в БД.
     """
 
-    contract_number = 'Прейскурант-14122025'
+    contract_number = 'Прейскурант_лаборатория-14122025'
     unit_code = '28'
     tariff_type = 2  # action_as_count
     beg_date = "2025-12-14"
