@@ -26,8 +26,6 @@ EXCEL_CONFIG = {
         'service_name': 1,  # Название услуги
         'service_price': 2  # Цена
     },
-    'expected_sheet_name': None,  # Если нужно указывать лист
-    'usecols': None  # Если нужно ограничить столбцы
 }
 
 PROCESS_CONFIG = {
@@ -63,9 +61,7 @@ def select_and_read_excel_file() -> pd.DataFrame:
         df = pd.read_excel(
             filepath,
             header=EXCEL_CONFIG['header_rows'],
-            index_col=None,
-            sheet_name=EXCEL_CONFIG['expected_sheet_name'],
-            usecols=EXCEL_CONFIG['usecols']
+            index_col=None
         )
 
         if df.empty:
