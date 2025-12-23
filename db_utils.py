@@ -61,6 +61,7 @@ def get_records(query):
         except mysql.connector.Error as e:
             print(f"Ошибка выполнения запроса: {e}")
 
+
 def get_info(query):
     """Выполнения запроса на получения данных и возвращает данные в виде списка словарей"""
     with get_db_connection() as cnx:
@@ -72,6 +73,7 @@ def get_info(query):
             return data
         except mysql.connector.Error as e:
             print(f"Ошибка выполнения запроса: {e}")
+
 
 def change_data(query):
     """Выполнения запроса на изменения данных"""
@@ -121,6 +123,28 @@ def update_service(service_id, data):
             rbService.id = {service_id}
     """
     return change_data(query)
+
+
+def get_contract_id_by_number(number):
+    """Получения id договора по номеру."""
+    query = f"""
+        SELECT Contract.id 
+        FROM Contract 
+        WHERE Contract.number='{number}'
+        ORDER BY Contract.id desc
+    """
+    return get_records(query)
+
+
+def get_unit_id_by_code(code):
+    """Получения id способа оплаты по коду."""
+    query = f"""
+        SELECT rbMedicalAidUnit.id 
+        FROM rbMedicalAidUnit 
+        WHERE rbMedicalAidUnit.code='{code}'
+        ORDER BY rbMedicalAidUnit.id desc
+    """
+    return get_records(query)
 
 
 def get_service_id_by_code(service_code):
@@ -222,7 +246,8 @@ def insert_organisation(data):
        isMedical, isActive, isInsurer,
        INN, KPP, OGRN, 
        OKVED, OKATO, OKPO, FSS, region, Address, chief, phone, accountant, area, notes, email,
-       createDatetime, modifyDatetime
+       createDatetime, modifyDatetime,
+       chiefPost
        )
        VALUES (
             '{data['nameFull']}',
@@ -235,7 +260,10 @@ def insert_organisation(data):
              '{data['ogrn']}',
              '', '', '', '', '', '',  '',  '', '', '', '', '',
              NOW(),
-             NOW());
+             NOW(),
+              ''
+             );
+
     """
     return change_data(query)
 
@@ -265,12 +293,18 @@ def insert_service(data):
     return change_data(query)
 
 
-def insert_tariff(service_id, contract_id, price):
+def insert_tariff(data):
     """Добавление тарифа уcлуги"""
     query = f"""
-       INSERT INTO Contract_Tariff (master_id, tariffType, service_id, price)
-       VALUES ({contract_id}, 2, {service_id}, {price})
-
+       INSERT INTO Contract_Tariff (master_id, tariffType, service_id, unit_id, price, begDate)
+       VALUES (
+            {data['contract_id']},
+            {data['tariff_type']},
+            {data['service_id']},
+            {data['unit_id']},
+            {data['price']},
+            '{data['beg_date']}'
+       )
     """
     return change_data(query)
 
