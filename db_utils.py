@@ -88,6 +88,19 @@ def change_data(query):
             print(f"Ошибка выполнения запроса: {e}")
 
 
+def update_service(service_id, data):
+    """Обновления данных услуги"""
+    query = f"""
+        UPDATE rbService
+        SET
+            rbService.adultUetDoctor='{data['uet_v']}',
+            rbService.childUetDoctor='{data['uet_d']}'
+        WHERE
+            rbService.id = {service_id}
+    """
+    return change_data(query)
+
+
 def get_contracts(filter_params):
     """
     Получает список договоров по заданным фильтрам.
@@ -112,25 +125,14 @@ def get_contracts(filter_params):
     return get_records(query % query_params)
 
 
-def update_service(service_id, data):
-    """Обновления данных услуги"""
-    query = f"""
-        UPDATE rbService
-        SET
-            rbService.adultUetDoctor='{data['uet_v']}',
-            rbService.childUetDoctor='{data['uet_d']}'
-        WHERE
-            rbService.id = {service_id}
-    """
-    return change_data(query)
-
-
-def get_contract_id_by_number(number):
+def get_contract_id_by_number(number, grouping, resolution):
     """Получения id договора по номеру."""
     query = f"""
         SELECT Contract.id 
         FROM Contract 
-        WHERE Contract.number='{number}'
+        WHERE Contract.number='{number}' AND 
+        Contract.grouping='{grouping}' AND
+        Contract.resolution='{resolution}'
         ORDER BY Contract.id desc
     """
     return get_records(query)
@@ -268,6 +270,32 @@ def insert_organisation(data):
     return change_data(query)
 
 
+def get_tariff(data):
+    """Получения действующего тарифа на дату."""
+    query = f"""
+        SELECT Contract_Tariff.id
+        FROM Contract_Tariff
+        WHERE 
+            Contract_Tariff.deleted = 0 AND 
+            Contract_Tariff.master_id = {data['contract_id']} AND
+            Contract_Tariff.service_id = {data['service_id']} AND
+            (Contract_Tariff.begDate < {data['date']} OR Contract_Tariff.begDate IS Null) AND
+            (Contract_Tariff.endDate > {data['date']} OR Contract_Tariff.endDate IS Null)
+    """
+    return get_records(query)
+
+
+def update_tariff(id, end_date):
+    """Закрываем текущий тариф"""
+    query = f"""
+        UPDATE Contract_Tariff 
+        SET endDate='{end_date}'
+        WHERE
+            Contract_Tariff.id = {id}
+    """
+    return change_data(query)
+
+
 def update_organisation(org_id, params):
     """Обновления данных организации"""
     set_parts = []
@@ -309,55 +337,16 @@ def insert_tariff(data):
     return change_data(query)
 
 
-def get_contract_tariff():
+def update_service_indification(data):
     pass
-    #     query = """
-    #         SELECT
-    #             rbService.code,
-    #             rbService.name,
-    #             Contract_Tariff.price,
-    #             Contract_Tariff.id
-    #         FROM Contract_Tariff
-    #         LEFT JOIN rbService ON  rbService.id = Contract_Tariff.service_id
-    #         WHERE Contract_Tariff.master_id=34 and Contract_Tariff.deleted = 0
-    #     """
-    #     with get_db_connection() as cnx:
-    #         data = get_query(query)
-    #     return data
-    # column_names = [i[0] for i in cursor.description]
-    # df = pd.DataFrame(data, columns=column_names)
-    # cursor.close()
-    # cnx.close()
-    # return df
-
-    #
-    # cnx = mysql.connector.connect(user=user, password=password, host=host, database=base_name)
-    # cursor = cnx.cursor()
-    # stmt = f"SELECT rbService.id " \
-    #        f"FROM rbService " \
-    #        f"WHERE rbService.code='{service_code}' " \
-    #        f"order by rbService.id desc "
-    # cursor.execute(stmt)
-    # data = cursor.fetchone()
-    # cursor.close()
-    # cnx.close()
-    # if data:
-    #     return data[0]
-    # else:
-    #     return None
 
 
-#     cnx = mysql.connector.connect(user=user, password=password, host=host, database=base_name)
-#     stmt = f"""
-#        INSERT INTO rbService (code, name, adultUetDoctor, childUetDoctor)
-#        VALUES ('{data['code']}', '{data['name']}', {data['uet_v']}, {data['uet_d']})
-#
-#     """
-#     cursor = cnx#     cursor.execute(stmt).cursor()
-#     cnx.commit()
-#     cursor.close()
-#     cnx.close()
-#     return data
+def get_contract_tariff(data):
+    pass
+
+
+def update_value_price(data):
+    pass
 
 
 def get_mse_service(data):
@@ -508,50 +497,18 @@ def get_mse_update_record(white_list, nmu_code, basic_additional):
 #     return data
 
 
-def update_service_indification(id, value):
-    pass
-
-
-#     cnx = mysql.connector.connect(user=user, password=password, host=host, database=base_name)
-#     stmt = f"""
-#         update ActionType_Identification
-#         set ActionType_Identification.value = '{value}'
-#         where
-#             ActionType_Identification.id = {id}
-#      """
-#     cursor = cnx.cursor()
-#     cursor.execute(stmt)
-#     cnx.commit()
-#     cursor.close()
-#     cnx.close()
-
-
 def get_lsimn(data):
     pass
 
 
 def insert_lsimn(data):
     pass
-
-
 #     cnx = mysql.connector.connect(user=user, password=password, host=host, database=base_name)
 #     stmt = f"INSERT INTO  \
 #             rbNomenclature (`code`,`name`, dosageValue) \
 #             VALUE ('{data['ID']}', '{data['NAME_TRADE']}', '{data['NORMALIZED_DOSAGE']}')"
 #     cursor = cnx.cursor()
 #     cursor.execute(stmt)
-#     cnx.commit()
-#     cursor.close()
-#     cnx.close()
-
-
-def update_value_price(merged):
-    pass
-#     cnx = mysql.connector.connect(user=user, password=password, host=host, database=base_name)
-#     cursor = cnx.cursor()
-#     update_query = "UPDATE Contract_Tariff SET price = %s WHERE id = %s"
-#     for index, row in merged.iterrows():
-#         cursor.execute(update_query, (row['Стоимость за процедуру/ манипуляцию, руб.'], row['id']))
 #     cnx.commit()
 #     cursor.close()
 #     cnx.close()

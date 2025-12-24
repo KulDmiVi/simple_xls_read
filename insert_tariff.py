@@ -5,7 +5,9 @@ from db_utils import (
     insert_tariff,
     get_service_id_by_code,
     get_contract_id_by_number,
-    get_unit_id_by_code
+    get_unit_id_by_code,
+    get_tariff,
+    update_tariff
 )
 
 logging.basicConfig(
@@ -19,21 +21,37 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+# Прайс услуги
 EXCEL_CONFIG = {
-    'header_rows': 12,
+    'header_rows': 8,
     'columns': {
-        'service_code': 0,  # Код услуги
-        'service_name': 1,  # Название услуги
-        'service_price': 2  # Цена
+        'service_code': 1,  # Код услуги
+        'service_name': 2,  # Название услуги
+        'service_price': 3  # Цена
     },
 }
 
+
+# Прайс лаборатория
+# EXCEL_CONFIG = {
+#     'header_rows': 11,
+#     'columns': {
+#         'service_code': 0,  # Код услуги
+#         'service_name': 1,  # Название услуги
+#         'service_price': 2  # Цена
+#     },
+# }
+
 PROCESS_CONFIG = {
-    'contract_number': 'Прейскурант_лаборатория-14122025',
+    'contract_number': 'ГАЙДЕ',
+    'contract_grouping': 'Организации',
+    'contract_resolution': '2025',
     'unit_code': '28',
     'tariff_type': 2,  # action_as_count
-    'beg_date': '2025-12-14'
+    'beg_date': '2025-12-14',
+    'end_date': '2025-12-13'
 }
+
 
 def select_and_read_excel_file() -> pd.DataFrame:
     """
@@ -80,12 +98,19 @@ def select_and_read_excel_file() -> pd.DataFrame:
         raise Exception(f"Ошибка при чтении файла {filepath}: {e}")
 
 
-def get_contract_unit_ids(contract_number: str, unit_code: str) -> tuple:
+def get_contract_unit_ids(
+        contract_number: str,
+        contract_grouping: str,
+        contract_resolution: str,
+        unit_code: str
+) -> tuple:
     """
     Получает ID договора и единицы измерения из БД.
 
     Args:
         contract_number: номер договора.
+        contract_grouping: группа,
+        contract_resolution: основание,
         unit_code: код единицы измерения.
 
     Returns:
@@ -95,7 +120,7 @@ def get_contract_unit_ids(contract_number: str, unit_code: str) -> tuple:
         ValueError: если ID не найдены.
     """
     logger.info(f"Поиск ID договора по номеру: {contract_number}")
-    contract_ids = get_contract_id_by_number(contract_number)
+    contract_ids = get_contract_id_by_number(contract_number, contract_grouping, contract_resolution)
 
     if not contract_ids:
         logger.error(f"Договор с номером {contract_number} не найден в БД.")
@@ -111,9 +136,7 @@ def get_contract_unit_ids(contract_number: str, unit_code: str) -> tuple:
         raise ValueError(f"Единица измерения с кодом {unit_code} не найдена.")
 
     logger.info(f"Найден ID единицы измерения: {unit_ids[0][0]}")
-
     return contract_ids[0][0], unit_ids[0][0]
-
 
 
 def parse_service_row(row: pd.Series) -> dict:
@@ -132,20 +155,29 @@ def parse_service_row(row: pd.Series) -> dict:
     price_idx = EXCEL_CONFIG['columns']['service_price']
 
     code = str(row.iloc[code_idx]).strip()
+
+    try:
+        code = str(int(float(row.iloc[code_idx])))
+    except (ValueError, TypeError):
+        code = str(row.iloc[code_idx])
+    code = code.strip()
     # Замена латинской 'A' на русскую
+    if code.startswith("A"):
+        code = "А" + code[1:]
+        logger.debug(f"Заменён код услуги: {code}")
     if code.startswith("A"):
         code = "А" + code[1:]
         logger.debug(f"Заменён код услуги: {code}")
 
     name = " ".join(str(row.iloc[name_idx]).split()) if pd.notna(row.iloc[name_idx]) else ""
     price = row.iloc[price_idx] if pd.notna(row.iloc[price_idx]) else 0.0
-
+    if isinstance(price, str):
+        price = price.rstrip('=')
     service_data = {
-        'code': code,
+        'code': str(code),
         'name': name,
         'price': float(price)
     }
-
     logger.debug(f"Извлечены данные услуги: {service_data}")
     return service_data
 
@@ -216,22 +248,34 @@ def insert_tariff_record(
         raise
 
 
+def get_current_tariff_by_service(service_id, contract_id):
+    data = {
+        'date': PROCESS_CONFIG['beg_date'],
+        'service_id': service_id,
+        'contract_id': contract_id
+    }
+    tarriff_ids = get_tariff(data)
+    return tarriff_ids
+
+
 def util_tariff_insert():
     """Основной процесс: считывает Excel, извлекает данные и вставляет тарифы в БД."""
 
     logger.info("Запуск процесса импорта тарифов из Excel")
-
+    price_idx = EXCEL_CONFIG['columns']['service_price']
     try:
         xls_df = select_and_read_excel_file()
         contract_id, unit_id = get_contract_unit_ids(
             PROCESS_CONFIG['contract_number'],
+            PROCESS_CONFIG['contract_grouping'],
+            PROCESS_CONFIG['contract_resolution'],
             PROCESS_CONFIG['unit_code']
         )
         processed_count = 0
         skipped_count = 0
 
         for index, row in xls_df.iterrows():
-            if not pd.notna(row.iloc[3]):
+            if not pd.notna(row.iloc[price_idx]):
                 skipped_count += 1
                 logger.debug(f"Строка {index}: пропущена из-за отсутствия цены")
                 continue
@@ -242,12 +286,17 @@ def util_tariff_insert():
             if not validate_service_ids(service_ids, service['code']):
                 skipped_count += 1
                 continue
+            service_id = service_ids[0][0]
+            tariff_ids = get_current_tariff_by_service(service_id, contract_id)
+            if len(tariff_ids) == 1:
+                logger.info(f"Закрываем текущий тариф {tariff_ids[0][0]}")
+                update_tariff(tariff_ids[0][0], PROCESS_CONFIG['end_date'])
 
             try:
                 insert_tariff_record(
                     contract_id=contract_id,
                     unit_id=unit_id,
-                    service_id=service_ids[0][0],
+                    service_id=service_id,
                     price=service['price'],
                     tariff_type=PROCESS_CONFIG['tariff_type'],
                     beg_date=PROCESS_CONFIG['beg_date']
