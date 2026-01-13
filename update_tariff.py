@@ -63,6 +63,7 @@ def show_contracts_dialog(contracts, tk_root):
     """
     Отображает диалоговое окно со списком договоров
     """
+
     dialog = tkinter.Toplevel(tk_root)
     dialog.title("Список договоров")
     dialog.geometry("600x400")
@@ -105,8 +106,8 @@ def util_tariff_updater(tk_root):
     xls_df = read_xls_file()
     if xls_df is not None:
         xls_df = clear_df(xls_df)
-        preview = DataPreview(xls_df, tk_root)
-        print("Данные сохранены в файл test.csv")
-    select_contracts(tk_root)
+        DataPreview(xls_df, tk_root)
+
+    # select_contracts(tk_root)
 
 

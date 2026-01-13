@@ -31,7 +31,6 @@ class DataPreview:
 
 
     def setup_table(self):
-
         for col in self.columns:
             self.table.heading(col, text=col, anchor="w")
             self.table.column(col, anchor="w", width=150)
@@ -79,7 +78,7 @@ class DataPreview:
         :return: None
         """
         try:
-            self.df.to_csv('test.csv', index=False)
+            self.df.to_csv('test.csv', index=False, sep=';',)
             messagebox.showinfo("Успех", "Файл успешно сохранен!")
         except Exception as e:
             messagebox.showerror("Ошибка", f"Произошла ошибка при сохранении файла: {str(e)}")
