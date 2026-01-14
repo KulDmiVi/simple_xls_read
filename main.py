@@ -9,6 +9,8 @@ try:
     from insert_tariff import util_tariff_insert
     from update_mo import util_mo_updater
 
+    from update_disp import run_disp_updater
+
 except ImportError as e:
     messagebox.showerror("Ошибка импорта", f"Не удалось импортировать модули: {str(e)}")
     raise
@@ -72,6 +74,8 @@ def run_selected():
         run_tariff_updater()
     elif selected == 5:
         run_mo_updater()
+    elif selected == 6:
+        run_disp_updater()
     else:
         messagebox.showwarning("Предупреждение", "Пожалуйста, выберите функцию")
 
@@ -119,6 +123,12 @@ ttk.Radiobutton(frame,
                 text="Обновление справочника организаций",
                 variable=var,
                 value=5).pack(anchor=tk.W)
+ttk.Radiobutton(frame,
+                text="Вставка тарифов диспансеризации",
+                variable=var,
+                value=6).pack(anchor=tk.W)
+
+
 
 
 ttk.Button(frame,

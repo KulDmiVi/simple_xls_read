@@ -101,6 +101,28 @@ def update_service(service_id, data):
     return change_data(query)
 
 
+def get_events_type_by_contract(filter):
+    """
+    Получает список типов событий для договора.
+
+    Args:
+        filter (dict): словарь с параметрами фильтрации
+
+    Returns:
+        list: список словарей с данными типах событий
+    """
+    query = f"""
+        SELECT EventType.id, EventType.code, EventType.name
+        FROM Contract_Specification
+            LEFT JOIN s11.EventType ON EventType.id = Contract_Specification.eventType_id
+        WHERE Contract_Specification.deleted = 0 AND Contract_Specification.master_id = %s
+    """
+
+    query_params = (filter['contract_id'])
+
+    return get_records(query % query_params)
+
+
 def get_contracts(filter_params):
     """
     Получает список договоров по заданным фильтрам.
@@ -114,7 +136,7 @@ def get_contracts(filter_params):
     query = f"""
         SELECT `id`, `number`, `resolution`, `grouping` 
         FROM Contract
-        WHERE resolution = %s AND grouping = %s
+        WHERE resolution = '%s' AND grouping = '%s'
     """
 
     query_params = (
