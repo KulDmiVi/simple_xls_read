@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 # Импортируем необходимые модули
+from transform_csv_tariff import util_transform_disp
+
 try:
     from update_lsimn import util_lsimn_updater, util_mse_service
     from update_tariff import util_tariff_updater
@@ -14,6 +16,8 @@ try:
 except ImportError as e:
     messagebox.showerror("Ошибка импорта", f"Не удалось импортировать модули: {str(e)}")
     raise
+
+
 
 
 def run_tariff_insert():
@@ -61,6 +65,14 @@ def run_mo_updater():
         messagebox.showerror("Ошибка", f"Произошла ошибка при обновлении справочника организаций: {str(e)}")
 
 
+def run_csv_disp_transformer():
+    """Запуск переформатирования CSV тарифов по диспансеризации"""
+    try:
+        util_transform_disp()
+        messagebox.showinfo("Успех", "Обработка файла выполнена успешно")
+    except Exception as e:
+        messagebox.showerror("Ошибка", f"Произошла ошибка при обработке файла: {str(e)}")
+
 def run_selected():
     """Обработчик выбора функции"""
     selected = var.get()
@@ -76,6 +88,8 @@ def run_selected():
         run_mo_updater()
     elif selected == 6:
         run_disp_updater()
+    elif selected == 7:
+        run_csv_disp_transformer()
     else:
         messagebox.showwarning("Предупреждение", "Пожалуйста, выберите функцию")
 
@@ -127,6 +141,11 @@ ttk.Radiobutton(frame,
                 text="Вставка тарифов диспансеризации",
                 variable=var,
                 value=6).pack(anchor=tk.W)
+
+ttk.Radiobutton(frame,
+                text="Преобразования файла тарифов по диспансеризации",
+                variable=var,
+                value=7).pack(anchor=tk.W)
 
 
 
