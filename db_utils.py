@@ -88,6 +88,19 @@ def change_data(query):
             print(f"Ошибка выполнения запроса: {e}")
 
 
+def insert_and_get_id(query):
+    with get_db_connection() as cnx:
+        try:
+            cursor = cnx.cursor()
+            cursor.execute(query)
+            cnx.commit()
+            inserted_id = cursor.lastrowid
+            cursor.close()
+            return inserted_id
+        except mysql.connector.Error as e:
+            print(f"Ошибка выполнения запроса: {e}")
+
+
 def update_service(service_id, data):
     """Обновления данных услуги"""
     query = f"""
@@ -307,6 +320,23 @@ def get_tariff(data):
     return get_records(query)
 
 
+def get_event_tariff(filter):
+    """Получения действующего тарифа на дату."""
+    query = f"""
+        SELECT Contract_Tariff.id
+        FROM Contract_Tariff
+        WHERE 
+            Contract_Tariff.deleted = 0 AND 
+            Contract_Tariff.master_id = {filter['contract_id']} AND
+            Contract_Tariff.eventType_id = {filter['event_id']} AND
+            Contract_Tariff.sex = {filter['sex']} AND
+            Contract_Tariff.age = '{filter['age']}' AND
+            (Contract_Tariff.begDate < {filter['date']} OR Contract_Tariff.begDate IS Null) AND
+            (Contract_Tariff.endDate > {filter['date']} OR Contract_Tariff.endDate IS Null)
+    """
+    return get_records(query)
+
+
 def update_tariff(id, end_date):
     """Закрываем текущий тариф"""
     query = f"""
@@ -316,6 +346,22 @@ def update_tariff(id, end_date):
             Contract_Tariff.id = {id}
     """
     return change_data(query)
+
+
+def update_new_row(id, beg_date, price):
+    query = f"""
+        UPDATE Contract_Tariff 
+        SET begDate='{beg_date}', endDate=NULL, price={price}
+        WHERE
+            Contract_Tariff.id = {id}
+    """
+    return change_data(query)
+
+
+def get_columns(table_name):
+    """Получает список полей таблицы, исключая 'id'"""
+    query = f"SHOW COLUMNS FROM {table_name}"
+    return get_records(query)
 
 
 def update_organisation(org_id, params):
@@ -331,6 +377,17 @@ def update_organisation(org_id, params):
             Organisation.id = {org_id}
     """
     return change_data(query)
+
+
+def copy_row(table, columns_str, id):
+    """Копирование строки"""
+    query = f"""
+        INSERT INTO {table} ({columns_str})
+        SELECT {columns_str}
+        FROM {table}
+        WHERE id = {id}
+    """
+    return insert_and_get_id(query)
 
 
 def insert_service(data):
