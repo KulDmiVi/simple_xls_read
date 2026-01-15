@@ -331,8 +331,9 @@ def get_event_tariff(filter):
             Contract_Tariff.eventType_id = {filter['event_id']} AND
             Contract_Tariff.sex = {filter['sex']} AND
             Contract_Tariff.age = '{filter['age']}' AND
-            (Contract_Tariff.begDate < {filter['date']} OR Contract_Tariff.begDate IS Null) AND
-            (Contract_Tariff.endDate > {filter['date']} OR Contract_Tariff.endDate IS Null)
+            (Contract_Tariff.begDate < '{filter['date']}' OR Contract_Tariff.begDate IS Null) AND
+            (Contract_Tariff.endDate > '{filter['date']}' OR Contract_Tariff.endDate IS Null) AND
+            Contract_Tariff.price != {filter['price']} 
     """
     return get_records(query)
 
