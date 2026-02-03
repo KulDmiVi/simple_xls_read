@@ -1,6 +1,7 @@
 import json
 import os
 from contextlib import contextmanager
+from time import sleep
 
 import mysql.connector
 from mysql.connector.locales.eng import client_error
@@ -42,8 +43,21 @@ def get_db_connection():
         )
         yield cnx
     except mysql.connector.Error as e:
+
         print(f"Ошибка подключения к БД: {e}")
-        raise
+        sleep(10)
+        cnx = mysql.connector.connect(
+            user=DB_CONFIG['user'],
+            password=DB_CONFIG['password'],
+            host=DB_CONFIG['host'],
+            port=DB_CONFIG['port'],
+            database=DB_CONFIG['database'],
+            connection_timeout=30
+        )
+        if not cnx:
+            raise
+        else:
+            yield cnx
     finally:
         if cnx and cnx.is_connected():
             cnx.close()

@@ -94,7 +94,7 @@ def export_data(csv_path):
                 new_id = copy_row('Contract_Tariff', columns_str, result[0][0])
                 print(new_id)
                 update_new_row(new_id, iso_beg_date, price)
-    print("Экспорт завершён (заглушка).")
+    print("Экспорт завершён!!!")
 
 
 def choose_csv_file(parent_window):
